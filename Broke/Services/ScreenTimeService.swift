@@ -1,66 +1,65 @@
 //
-//  AppBlocker.swift
+//  ScreenTimeService.swift
 //  Broke
 //
-//  Created by Oz Tamir on 22/08/2024.
+//  Owns all FamilyControls / ManagedSettings interaction. Views and domain
+//  logic never touch ManagedSettingsStore directly.
 //
-import SwiftUI
-import ManagedSettings
-import FamilyControls
 
-class AppBlocker: ObservableObject {
-    let store = ManagedSettingsStore()
-    @Published var isBlocking = false
-    @Published var isAuthorized = false
-    
-    init() {
-        loadBlockingState()
-        Task {
-            await requestAuthorization()
-        }
+import Foundation
+import FamilyControls
+import ManagedSettings
+
+protocol ScreenTimeServiceProtocol {
+    var isAuthorized: Bool { get }
+    func authorizationStatus() -> AuthorizationStatus
+    func authorize() async throws
+    /// Apply the restrictions described by a Mode.
+    func apply(_ mode: Mode)
+    /// Remove all restrictions managed by this app.
+    func clearRestrictions()
+}
+
+final class ScreenTimeService: ScreenTimeServiceProtocol {
+    /// Uses the default ManagedSettingsStore so shields already applied by the
+    /// previous (v0.1) build remain under this app's control after upgrade.
+    private let store = ManagedSettingsStore()
+    private let center = AuthorizationCenter.shared
+
+    var isAuthorized: Bool {
+        center.authorizationStatus == .approved
     }
-    
-    func requestAuthorization() async {
-        do {
-            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-            DispatchQueue.main.async {
-                self.isAuthorized = true
-            }
-        } catch {
-            print("Failed to request authorization: \(error)")
-            DispatchQueue.main.async {
-                self.isAuthorized = false
-            }
-        }
+
+    func authorizationStatus() -> AuthorizationStatus {
+        center.authorizationStatus
     }
-    
-    func toggleBlocking(for profile: Profile) {
-        guard isAuthorized else {
-            print("Not authorized to block apps")
-            return
-        }
-        
-        isBlocking.toggle()
-        saveBlockingState()
-        applyBlockingSettings(for: profile)
+
+    func authorize() async throws {
+        try await center.requestAuthorization(for: .individual)
     }
-    
-    func applyBlockingSettings(for profile: Profile) {
-        if isBlocking {
-            NSLog("Blocking \(profile.appTokens.count) apps")
-            store.shield.applications = profile.appTokens.isEmpty ? nil : profile.appTokens
-            store.shield.applicationCategories = profile.categoryTokens.isEmpty ? ShieldSettings.ActivityCategoryPolicy.none : .specific(profile.categoryTokens)
-        } else {
-            store.shield.applications = nil
-            store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.none
-        }
+
+    func apply(_ mode: Mode) {
+        let apps = mode.selectedApplications
+        let categories = mode.selectedCategories
+        let webDomains = mode.selectedWebDomains
+
+        NSLog("ScreenTimeService: applying mode \(mode.name) [apps: \(apps.count), categories: \(categories.count), web: \(webDomains.count)]")
+
+        store.shield.applications = apps.isEmpty ? nil : apps
+        store.shield.applicationCategories = categories.isEmpty
+            ? ShieldSettings.ActivityCategoryPolicy.none
+            : .specific(categories)
+        store.shield.webDomains = webDomains.isEmpty ? nil : webDomains
+        store.shield.webDomainCategories = categories.isEmpty
+            ? ShieldSettings.ActivityCategoryPolicy.none
+            : .specific(categories)
     }
-    
-    private func loadBlockingState() {
-        isBlocking = UserDefaults.standard.bool(forKey: "isBlocking")
-    }
-    
-    private func saveBlockingState() {
-        UserDefaults.standard.set(isBlocking, forKey: "isBlocking")
+
+    func clearRestrictions() {
+        NSLog("ScreenTimeService: clearing restrictions")
+        store.shield.applications = nil
+        store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.none
+        store.shield.webDomains = nil
+        store.shield.webDomainCategories = ShieldSettings.ActivityCategoryPolicy.none
     }
 }
