@@ -1,52 +1,51 @@
 //
-//  EditProfileView.swift
+//  ModeFormView.swift
 //  Broke
 //
-//  Created by Oz Tamir on 23/08/2024.
+//  Create / edit a Mode, including its FamilyActivitySelection.
 //
 
 import SwiftUI
 import SFSymbolsPicker
 import FamilyControls
 
-struct ProfileFormView: View {
-    @ObservedObject var profileManager: ProfileManager
-    @State private var profileName: String
-    @State private var profileIcon: String
+struct ModeFormView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(AppEnvironment.self) private var env
+    @Environment(ModeStore.self) private var modeStore
+    @Environment(FocusController.self) private var focusController
+
+    @State private var name: String
+    @State private var icon: String
     @State private var showSymbolsPicker = false
     @State private var showAppSelection = false
-    @State private var activitySelection: FamilyActivitySelection
+    @State private var selection: FamilyActivitySelection
     @State private var showDeleteConfirmation = false
-    let profile: Profile?
-    let onDismiss: () -> Void
-    
-    init(profile: Profile? = nil, profileManager: ProfileManager, onDismiss: @escaping () -> Void) {
-        self.profile = profile
-        self.profileManager = profileManager
-        self.onDismiss = onDismiss
-        _profileName = State(initialValue: profile?.name ?? "")
-        _profileIcon = State(initialValue: profile?.icon ?? "bell.slash")
-        
-        var selection = FamilyActivitySelection()
-        selection.applicationTokens = profile?.appTokens ?? []
-        selection.categoryTokens = profile?.categoryTokens ?? []
-        _activitySelection = State(initialValue: selection)
+    @State private var showActiveDeleteAlert = false
+
+    private let mode: Mode?
+
+    init(mode: Mode? = nil) {
+        self.mode = mode
+        _name = State(initialValue: mode?.name ?? "")
+        _icon = State(initialValue: mode?.icon ?? "bell.slash")
+        _selection = State(initialValue: mode?.selection ?? FamilyActivitySelection())
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Profile Details")) {
+                Section(header: Text("Mode Details")) {
                     VStack(alignment: .leading) {
-                        Text("Profile Name")
+                        Text("Mode Name")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        TextField("Enter profile name", text: $profileName)
+                        TextField("Enter mode name", text: $name)
                     }
-                    
+
                     Button(action: { showSymbolsPicker = true }) {
                         HStack {
-                            Image(systemName: profileIcon)
+                            Image(systemName: icon)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 40, height: 40)
@@ -57,92 +56,91 @@ struct ProfileFormView: View {
                         }
                     }
                 }
-                
+
                 Section(header: Text("App Configuration")) {
                     Button(action: { showAppSelection = true }) {
                         Text("Configure Blocked Apps")
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Blocked Apps:")
-                            Spacer()
-                            Text("\(activitySelection.applicationTokens.count)")
-                                .fontWeight(.bold)
-                        }
-                        HStack {
-                            Text("Blocked Categories:")
-                            Spacer()
-                            Text("\(activitySelection.categoryTokens.count)")
-                                .fontWeight(.bold)
-                        }
+                        row("Blocked Apps:", selection.applicationTokens.count)
+                        row("Blocked Categories:", selection.categoryTokens.count)
+                        row("Blocked Websites:", selection.webDomainTokens.count)
                         Text("Broke can't list the names of the apps due to privacy concerns, it is only able to see the amount of apps selected in the configuration screen.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
-                
-                if profile != nil {
+
+                if mode != nil {
                     Section {
-                        Button(action: { showDeleteConfirmation = true }) {
-                            Text("Delete Profile")
-                                .foregroundColor(.red)
+                        Button(role: .destructive, action: attemptDelete) {
+                            Text("Delete Mode")
                         }
                     }
                 }
             }
-            .navigationTitle(profile == nil ? "Add Profile" : "Edit Profile")
+            .navigationTitle(mode == nil ? "Add Mode" : "Edit Mode")
             .navigationBarItems(
-                leading: Button("Cancel", action: onDismiss),
-                trailing: Button("Save", action: handleSave)
-                    .disabled(profileName.isEmpty)
+                leading: Button("Cancel") { dismiss() },
+                trailing: Button("Save", action: handleSave).disabled(name.isEmpty)
             )
             .sheet(isPresented: $showSymbolsPicker) {
-                SymbolsPicker(selection: $profileIcon, title: "Pick an icon", autoDismiss: true)
+                SymbolsPicker(selection: $icon, title: "Pick an icon", autoDismiss: true)
             }
             .sheet(isPresented: $showAppSelection) {
                 NavigationView {
-                    FamilyActivityPicker(selection: $activitySelection)
+                    FamilyActivityPicker(selection: $selection)
                         .navigationTitle("Select Apps")
                         .navigationBarItems(trailing: Button("Done") {
                             showAppSelection = false
                         })
                 }
             }
-            .alert(isPresented: $showDeleteConfirmation) {
-                Alert(
-                    title: Text("Delete Profile"),
-                    message: Text("Are you sure you want to delete this profile?"),
-                    primaryButton: .destructive(Text("Delete")) {
-                        if let profile = profile {
-                            profileManager.deleteProfile(withId: profile.id)
-                        }
-                        onDismiss()
-                    },
-                    secondaryButton: .cancel()
-                )
+            .alert("Delete Mode", isPresented: $showDeleteConfirmation) {
+                Button("Delete", role: .destructive, action: performDelete)
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Are you sure you want to delete this mode? Tags linked to it will be unlinked.")
+            }
+            .alert("Mode is active", isPresented: $showActiveDeleteAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Finish the active focus session before deleting this mode.")
             }
         }
     }
-    
-    private func handleSave() {
-        if let existingProfile = profile {
-            profileManager.updateProfile(
-                id: existingProfile.id,
-                name: profileName,
-                appTokens: activitySelection.applicationTokens,
-                categoryTokens: activitySelection.categoryTokens,
-                icon: profileIcon
-            )
-        } else {
-            let newProfile = Profile(
-                name: profileName,
-                appTokens: activitySelection.applicationTokens,
-                categoryTokens: activitySelection.categoryTokens,
-                icon: profileIcon
-            )
-            profileManager.addProfile(newProfile: newProfile)
+
+    private func row(_ label: String, _ count: Int) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Text("\(count)").fontWeight(.bold)
         }
-        onDismiss()
+    }
+
+    private func handleSave() {
+        if let mode {
+            modeStore.update(id: mode.id, name: name, icon: icon, selection: selection)
+            env.modeWasEdited(mode.id)
+        } else {
+            modeStore.add(name: name, icon: icon, selection: selection)
+        }
+        dismiss()
+    }
+
+    private func attemptDelete() {
+        guard let mode else { return }
+        if focusController.activeMode?.id == mode.id {
+            showActiveDeleteAlert = true
+        } else {
+            showDeleteConfirmation = true
+        }
+    }
+
+    private func performDelete() {
+        guard let mode else { return }
+        _ = env.deleteMode(mode.id)
+        dismiss()
     }
 }

@@ -9,14 +9,18 @@ import SwiftUI
 
 @main
 struct BrokeApp: App {
-    @StateObject private var appBlocker = AppBlocker()
-    @StateObject private var profileManager = ProfileManager()
-    
+    @State private var environment = AppEnvironment()
+
     var body: some Scene {
         WindowGroup {
             BrokerView()
-                .environmentObject(appBlocker)
-                .environmentObject(profileManager)
+                .environment(environment)
+                .environment(environment.modeStore)
+                .environment(environment.tagStore)
+                .environment(environment.focusController)
+                .task {
+                    await environment.bootstrap()
+                }
         }
     }
 }

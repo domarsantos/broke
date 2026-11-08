@@ -1,67 +1,63 @@
 //
-//  ProfilePicker.swift
+//  ModesPicker.swift
 //  Broke
 //
-//  Created by Oz Tamir on 23/08/2024.
+//  Grid of Modes (formerly Profiles). Tap to select, long-press to edit.
 //
 
 import SwiftUI
-import FamilyControls
 
-struct ProfilesPicker: View {
-    @ObservedObject var profileManager: ProfileManager
-    @State private var showAddProfileView = false
-    @State private var editingProfile: Profile?
-    
+struct ModesPicker: View {
+    @Environment(ModeStore.self) private var modeStore
+
+    @State private var showAddMode = false
+    @State private var editingMode: Mode?
+
     var body: some View {
         VStack {
-            Text("Profiles")
+            Text("Modes")
                 .font(.headline)
                 .padding(.horizontal)
                 .padding(.top)
-            
+
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 10)], spacing: 10) {
-                    ForEach(profileManager.profiles) { profile in
-                        ProfileCell(profile: profile, isSelected: profile.id == profileManager.currentProfileId)
+                    ForEach(modeStore.modes) { mode in
+                        ModeCell(mode: mode, isSelected: mode.id == modeStore.selectedModeID)
                             .onTapGesture {
-                                profileManager.setCurrentProfile(id: profile.id)
+                                modeStore.select(mode.id)
                             }
                             .onLongPressGesture {
-                                editingProfile = profile
+                                editingMode = mode
                             }
                     }
-                    
-                    ProfileCellBase(name: "New...", icon: "plus", appsBlocked: nil, categoriesBlocked: nil, isSelected: false, isDashed: true, hasDivider: false)
+
+                    ModeCellBase(name: "New...", icon: "plus", appsBlocked: nil, categoriesBlocked: nil, isSelected: false, isDashed: true, hasDivider: false)
                         .onTapGesture {
-                            showAddProfileView = true
+                            showAddMode = true
                         }
                 }
                 .padding(.horizontal, 10)
             }
-            
+
             Spacer()
-            
-            Text("Long press on a profile to edit...")
+
+            Text("Long press on a Mode to edit...")
                 .font(.caption2)
                 .foregroundColor(.secondary.opacity(0.7))
                 .padding(.bottom, 8)
         }
         .background(Color("ProfileSectionBackground"))
-        .sheet(item: $editingProfile) { profile in
-            ProfileFormView(profile: profile, profileManager: profileManager) {
-                editingProfile = nil
-            }
+        .sheet(item: $editingMode) { mode in
+            ModeFormView(mode: mode)
         }
-        .sheet(isPresented: $showAddProfileView) {
-            ProfileFormView(profileManager: profileManager) {
-                showAddProfileView = false
-            }
+        .sheet(isPresented: $showAddMode) {
+            ModeFormView()
         }
     }
 }
 
-struct ProfileCellBase: View {
+struct ModeCellBase: View {
     let name: String
     let icon: String
     let appsBlocked: Int?
@@ -83,7 +79,7 @@ struct ProfileCellBase: View {
                 .font(.caption)
                 .fontWeight(.medium)
                 .lineLimit(1)
-            
+
             if let apps = appsBlocked, let categories = categoriesBlocked {
                 Text("A: \(apps) | C: \(categories)")
                     .font(.system(size: 10))
@@ -103,16 +99,16 @@ struct ProfileCellBase: View {
     }
 }
 
-struct ProfileCell: View {
-    let profile: Profile
+struct ModeCell: View {
+    let mode: Mode
     let isSelected: Bool
 
     var body: some View {
-        ProfileCellBase(
-            name: profile.name,
-            icon: profile.icon,
-            appsBlocked: profile.appTokens.count,
-            categoriesBlocked: profile.categoryTokens.count,
+        ModeCellBase(
+            name: mode.name,
+            icon: mode.icon,
+            appsBlocked: mode.selectedApplications.count,
+            categoriesBlocked: mode.selectedCategories.count,
             isSelected: isSelected
         )
     }

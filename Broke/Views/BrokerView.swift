@@ -1,122 +1,170 @@
 //
-//  BrockerView.swift
+//  BrokerView.swift
 //  Broke
 //
-//  Created by Oz Tamir on 22/08/2024.
+//  Home screen. Delegates ALL activation logic to FocusController / NFCService;
+//  it contains no NFC or Screen Time business rules.
 //
+
 import SwiftUI
 import CoreNFC
-import SFSymbolsPicker
-import FamilyControls
-import ManagedSettings
 
 struct BrokerView: View {
-    @EnvironmentObject private var appBlocker: AppBlocker
-    @EnvironmentObject private var profileManager: ProfileManager
-    @StateObject private var nfcReader = NFCReader()
-    private let tagPhrase = "BROKE-IS-GREAT"
-    
-    @State private var showWrongTagAlert = false
-    @State private var showCreateTagAlert = false
-    @State private var nfcWriteSuccess = false
-    
-    private var isBlocking : Bool {
-        get {
-            return appBlocker.isBlocking
-        }
-    }
-    
+    @Environment(AppEnvironment.self) private var env
+    @Environment(ModeStore.self) private var modeStore
+    @Environment(FocusController.self) private var focusController
+
+    @State private var showTags = false
+    @State private var pairingScan: ScannedTag?
+    @State private var showNoModeAlert = false
+    @State private var errorMessage: String?
+
+    private var isBlocking: Bool { focusController.isActive }
+
     var body: some View {
         NavigationView {
             GeometryReader { geometry in
                 ZStack {
                     VStack(spacing: 0) {
-                        blockOrUnblockButton(geometry: geometry)
-                        
+                        blockButton(geometry: geometry)
+
                         if !isBlocking {
                             Divider()
-                            
-                            ProfilesPicker(profileManager: profileManager)
+                            ModesPicker()
                                 .frame(height: geometry.size.height / 2)
                                 .transition(.move(edge: .bottom))
+                        } else {
+                            activeModeFooter
                         }
                     }
                     .background(isBlocking ? Color("BlockingBackground") : Color("NonBlockingBackground"))
                 }
             }
-            .navigationBarItems(trailing: createTagButton)
-            .alert(isPresented: $showWrongTagAlert) {
-                Alert(
-                    title: Text("Not a Broker Tag"),
-                    message: Text("You can create a new Broker tag using the + button"),
-                    dismissButton: .default(Text("OK"))
-                )
-            }
-            .alert("Create Broker Tag", isPresented: $showCreateTagAlert) {
-                Button("Create") { createBrokerTag() }
-                Button("Cancel", role: .cancel) { }
+            .navigationBarItems(trailing: tagsButton)
+            .alert("No Mode selected", isPresented: $showNoModeAlert) {
+                Button("OK", role: .cancel) {}
             } message: {
-                Text("Do you want to create a new Broker tag?")
+                Text("Create or select a Mode before starting a focus session.")
             }
-            .alert("Tag Creation", isPresented: $nfcWriteSuccess) {
-                Button("OK", role: .cancel) { }
+            .alert("NFC Error", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { errorMessage = nil }
             } message: {
-                Text(nfcWriteSuccess ? "Broker tag created successfully!" : "Failed to create Broker tag. Please try again.")
+                Text(errorMessage ?? "")
+            }
+            .sheet(isPresented: $showTags) {
+                TagsView()
+            }
+            .sheet(item: $pairingScan) { scan in
+                TagPairingView(prefilledScan: scan)
             }
         }
         .animation(.spring(), value: isBlocking)
     }
-    
+
     @ViewBuilder
-    private func blockOrUnblockButton(geometry: GeometryProxy) -> some View {
+    private func blockButton(geometry: GeometryProxy) -> some View {
         VStack(spacing: 8) {
-            Text(isBlocking ? "Tap to unblock" : "Tap to block")
+            Text(isBlocking ? "Tap to scan & unblock" : "Tap to scan & block")
                 .font(.caption)
                 .opacity(0.75)
                 .transition(.scale)
-            
-            Button(action: {
-                withAnimation(.spring()) {
-                    scanTag()
-                }
-            }) {
+
+            Button(action: { Task { await scanTag() } }) {
                 Image(isBlocking ? "RedIcon" : "GreenIcon")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(height: geometry.size.height / 3)
             }
             .transition(.scale)
+
+            if !isBlocking {
+                Button(action: startWithoutTag) {
+                    Label("Start without tag", systemImage: "play.circle")
+                        .font(.subheadline)
+                }
+                .padding(.top, 4)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .frame(height: isBlocking ? geometry.size.height : geometry.size.height / 2)
         .animation(.spring(), value: isBlocking)
     }
-    
-    private func scanTag() {
-        nfcReader.scan { payload in
-            if payload == tagPhrase {
-                NSLog("Toggling block")
-                appBlocker.toggleBlocking(for: profileManager.currentProfile)
-            } else {
-                showWrongTagAlert = true
-                NSLog("Wrong Tag!\nPayload: \(payload)")
+
+    @ViewBuilder
+    private var activeModeFooter: some View {
+        if let mode = focusController.activeMode, let session = focusController.activeSession {
+            VStack(spacing: 6) {
+                Image(systemName: mode.icon)
+                    .font(.title2)
+                Text("\(mode.name) active")
+                    .font(.headline)
+                Text("Since \(session.startedAt.formatted(date: .omitted, time: .shortened))")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("Scan the tag again to finish.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 2)
             }
+            .padding()
         }
     }
-    
-    private var createTagButton: some View {
-        Button(action: {
-            showCreateTagAlert = true
-        }) {
-            Image(systemName: "plus")
-        }
-        .disabled(!NFCNDEFReaderSession.readingAvailable)
-    }
-    
-    private func createBrokerTag() {
-        nfcReader.write(tagPhrase) { success in
-            nfcWriteSuccess = !success
-            showCreateTagAlert = false
+
+    private var tagsButton: some View {
+        Button(action: { showTags = true }) {
+            Image(systemName: "tag")
         }
     }
+
+    // MARK: - Actions
+
+    private func scanTag() async {
+        do {
+            let scanned = try await env.nfcService.scan()
+            let outcome = try focusController.handleScan(
+                scanned,
+                fallbackModeID: modeStore.selectedModeID
+            )
+            switch outcome {
+            case .unregistered:
+                pairingScan = scanned
+            case .noModeToActivate:
+                showNoModeAlert = true
+            case .activated, .deactivated, .switched:
+                break // state updates drive the UI
+            }
+        } catch let error as NFCServiceError {
+            if error != .cancelled {
+                errorMessage = describe(error)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func startWithoutTag() {
+        guard let modeID = modeStore.selectedModeID else {
+            showNoModeAlert = true
+            return
+        }
+        _ = try? focusController.startManual(modeID: modeID)
+    }
+
+    private func describe(_ error: NFCServiceError) -> String {
+        switch error {
+        case .unavailable: return "NFC is not available on this device."
+        case .noTag: return "No tag detected."
+        case let .readFailed(message): return message
+        case let .writeFailed(message): return message
+        case .cancelled: return ""
+        }
+    }
+}
+
+// Allow using ScannedTag with `.sheet(item:)`.
+extension ScannedTag: Identifiable {
+    public var id: String { hardwareIdentifier }
 }
