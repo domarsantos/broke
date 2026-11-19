@@ -2,3 +2,7 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 .DS_Store
+
+# Xcode Organizer / archive exports (contain .ipa builds)
+*.ipa
+MiniFocus [0-9]*/
