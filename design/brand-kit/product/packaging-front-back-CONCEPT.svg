@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="190mm" height="125mm" viewBox="0 0 190 125">
+<rect width="190" height="125" fill="#ECECE6"/>
+<rect x="6" y="6" width="85" height="110" rx="2" fill="#F7F6F1" stroke="#183B35" stroke-width=".35"/>
+<rect x="99" y="6" width="85" height="110" rx="2" fill="#183B35"/>
+<g transform="translate(29,18) scale(.21)"><path d="M45 97 A60 60 0 0 1 105 39" fill="none" stroke="#183B35" stroke-width="15" stroke-linecap="round"/><path d="M155 104 A60 60 0 0 1 95 164" fill="none" stroke="#183B35" stroke-width="15" stroke-linecap="round"/><circle cx="100" cy="101" r="15" fill="#183B35"/></g>
+<text x="48.5" y="76" text-anchor="middle" font-family="Sora,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#183B35">mini focus</text>
+<text x="48.5" y="87" text-anchor="middle" font-family="Arial,sans-serif" font-size="4.5" fill="#60756E">Menos tela. Mais presença.</text>
+<g transform="translate(120,12) scale(.20)"><path d="M45 97 A60 60 0 0 1 105 39" fill="none" stroke="#F7F6F1" stroke-width="15" stroke-linecap="round"/><path d="M155 104 A60 60 0 0 1 95 164" fill="none" stroke="#F7F6F1" stroke-width="15" stroke-linecap="round"/><circle cx="100" cy="101" r="15" fill="#F7F6F1"/></g>
+<text x="141.5" y="63" text-anchor="middle" font-family="Sora,Arial,sans-serif" font-size="7.5" font-weight="600" fill="#F7F6F1">Comece em 3 passos</text>
+<text x="108" y="76" font-family="Arial,sans-serif" font-size="4.4" fill="#F7F6F1">1. Instale o Mini Focus.</text>
+<text x="108" y="86" font-family="Arial,sans-serif" font-size="4.4" fill="#F7F6F1">2. Escolha seus aplicativos.</text>
+<text x="108" y="96" font-family="Arial,sans-serif" font-size="4.4" fill="#F7F6F1">3. Aproxime o Mini Tag.</text>
+<text x="95" y="121" font-family="Arial,sans-serif" font-size="3" fill="#60756E" text-anchor="middle">Arte conceitual (sem sangria/QR) — validar faca, material e dados legais com gráfica</text>
+</svg>

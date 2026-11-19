@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base theme: the UI is drawn by Compose; this keeps the splash/window
+         background and status bar on-brand (light appearance only). -->
+    <style name="Theme.MiniFocus" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/mini_background</item>
+        <item name="android:statusBarColor">@color/mini_background</item>
+        <item name="android:navigationBarColor">@color/mini_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+    </style>
+</resources>

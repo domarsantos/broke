@@ -1,0 +1,43 @@
+{
+  "name": "Mini Focus",
+  "version": "1.0 concept",
+  "color": {
+    "primary": "#183B35",
+    "background": "#F7F6F1",
+    "surface": "#FFFFFF",
+    "surfaceSage": "#DCE9E1",
+    "textPrimary": "#1D2824",
+    "textSecondary": "#60756E",
+    "line": "#E3E9E4",
+    "accentWarm": "#D6A678",
+    "error": "#A74336",
+    "success": "#183B35"
+  },
+  "typography": {
+    "brand": "Sora",
+    "app": "SF Pro (system)",
+    "baseBodyPt": 17,
+    "titlePt": 32,
+    "sectionPt": 22,
+    "captionPt": 13
+  },
+  "spacing": {
+    "unit": 4,
+    "screenHorizontal": 24,
+    "componentGap": 16,
+    "sectionGap": 32
+  },
+  "radius": {
+    "card": 20,
+    "button": 16,
+    "chip": 999
+  },
+  "controls": {
+    "buttonMinHeight": 52,
+    "tapTargetMinSize": 44
+  },
+  "motion": {
+    "standardMs": 200,
+    "reducedMotion": "Respect system accessibility setting"
+  }
+}

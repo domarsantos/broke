@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>MiniFocus.ipa</key>
+	<array>
+		<dict>
+			<key>architectures</key>
+			<array>
+				<string>arm64</string>
+			</array>
+			<key>buildNumber</key>
+			<string>1</string>
+			<key>certificate</key>
+			<dict>
+				<key>SHA1</key>
+				<string>37BBCC46D8CB6E1A226A44678127D37FA8D1E5A0</string>
+				<key>dateExpires</key>
+				<string>18/11/27</string>
+				<key>type</key>
+				<string>Cloud Managed Apple Distribution</string>
+			</dict>
+			<key>entitlements</key>
+			<dict>
+				<key>application-identifier</key>
+				<string>7BFJ263W7Y.com.dsoria.MiniFocus</string>
+				<key>beta-reports-active</key>
+				<true/>
+				<key>com.apple.developer.family-controls</key>
+				<true/>
+				<key>com.apple.developer.nfc.readersession.formats</key>
+				<array>
+					<string>TAG</string>
+				</array>
+				<key>com.apple.developer.team-identifier</key>
+				<string>7BFJ263W7Y</string>
+				<key>get-task-allow</key>
+				<false/>
+			</dict>
+			<key>name</key>
+			<string>MiniFocus.app</string>
+			<key>profile</key>
+			<dict>
+				<key>UUID</key>
+				<string>f4377a5d-4258-416a-83af-d97980ae60e4</string>
+				<key>dateExpires</key>
+				<string>18/11/27</string>
+				<key>name</key>
+				<string>iOS Team Store Provisioning Profile: com.dsoria.MiniFocus</string>
+			</dict>
+			<key>symbols</key>
+			<true/>
+			<key>team</key>
+			<dict>
+				<key>id</key>
+				<string>7BFJ263W7Y</string>
+				<key>name</key>
+				<string>Daniel Omar Santos</string>
+			</dict>
+			<key>versionNumber</key>
+			<string>1.0</string>
+		</dict>
+	</array>
+</dict>
+</plist>

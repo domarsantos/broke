@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mini Focus brand palette (design/brand-kit/brand/design-tokens.json). -->
+    <color name="mini_primary">#183B35</color>
+    <color name="mini_background">#F7F6F1</color>
+    <color name="mini_surface">#FFFFFF</color>
+    <color name="mini_on_primary">#FFFFFF</color>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mini Focus</string>
+    <string name="accessibility_service_label">Mini Focus</string>
+    <string name="accessibility_service_description">O Mini Focus usa este serviço para limitar os aplicativos que você escolher enquanto o foco está ativo. Ele não coleta nem envia o conteúdo das suas telas.</string>
+</resources>
