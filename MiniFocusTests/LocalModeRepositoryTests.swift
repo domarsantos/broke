@@ -63,4 +63,26 @@ final class LocalModeRepositoryTests: XCTestCase {
         let all = try repository.fetchAll()
         XCTAssertEqual(all.map(\.name), ["A", "B"])
     }
+
+    func testNewModeDefaultsToUnlocked() throws {
+        let mode = TestSupport.makeMode(name: "Default")
+        try repository.create(mode)
+        let fetched = try repository.fetch(id: mode.id)
+        XCTAssertEqual(fetched?.isStrictMode, false)
+        XCTAssertEqual(fetched?.isSecurityMode, false)
+    }
+
+    func testStrictAndSecurityFlagsRoundTrip() throws {
+        let mode = Mode(name: "Bank", isStrictMode: true, isSecurityMode: true)
+        try repository.create(mode)
+        var fetched = try XCTUnwrap(try repository.fetch(id: mode.id))
+        XCTAssertTrue(fetched.isStrictMode)
+        XCTAssertTrue(fetched.isSecurityMode)
+
+        fetched.isStrictMode = false
+        try repository.update(fetched)
+        let updated = try repository.fetch(id: mode.id)
+        XCTAssertEqual(updated?.isStrictMode, false)
+        XCTAssertEqual(updated?.isSecurityMode, true)
+    }
 }

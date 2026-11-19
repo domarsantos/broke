@@ -17,7 +17,7 @@ final class LocalModeRepository: ModeRepositoryProtocol {
     }
 
     func fetchAll() throws -> [Mode] {
-        let descriptor = FetchDescriptor<BrokeSchemaV1.ModeEntity>(
+        let descriptor = FetchDescriptor<BrokeSchemaV2.ModeEntity>(
             sortBy: [SortDescriptor(\.createdAt, order: .forward)]
         )
         return try context.fetch(descriptor).map { $0.toDomain() }
@@ -28,11 +28,13 @@ final class LocalModeRepository: ModeRepositoryProtocol {
     }
 
     func create(_ mode: Mode) throws {
-        let entity = BrokeSchemaV1.ModeEntity(
+        let entity = BrokeSchemaV2.ModeEntity(
             id: mode.id,
             name: mode.name,
             icon: mode.icon,
-            selectionData: BrokeSchemaV1.ModeEntity.selectionData(from: mode.selection),
+            selectionData: BrokeSchemaV2.ModeEntity.selectionData(from: mode.selection),
+            isStrictMode: mode.isStrictMode,
+            isSecurityMode: mode.isSecurityMode,
             createdAt: mode.createdAt,
             updatedAt: mode.updatedAt
         )
@@ -52,8 +54,8 @@ final class LocalModeRepository: ModeRepositoryProtocol {
         try context.save()
     }
 
-    private func entity(id: UUID) throws -> BrokeSchemaV1.ModeEntity? {
-        var descriptor = FetchDescriptor<BrokeSchemaV1.ModeEntity>(
+    private func entity(id: UUID) throws -> BrokeSchemaV2.ModeEntity? {
+        var descriptor = FetchDescriptor<BrokeSchemaV2.ModeEntity>(
             predicate: #Predicate { $0.id == id }
         )
         descriptor.fetchLimit = 1

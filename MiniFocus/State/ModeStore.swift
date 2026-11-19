@@ -56,19 +56,40 @@ final class ModeStore {
     }
 
     @discardableResult
-    func add(name: String, icon: String, selection: FamilyActivitySelection) -> Mode {
-        let mode = Mode(name: name, icon: icon, selection: selection)
+    func add(
+        name: String,
+        icon: String,
+        selection: FamilyActivitySelection,
+        isStrictMode: Bool = false,
+        isSecurityMode: Bool = false
+    ) -> Mode {
+        let mode = Mode(
+            name: name,
+            icon: icon,
+            selection: selection,
+            isStrictMode: isStrictMode,
+            isSecurityMode: isSecurityMode
+        )
         try? repository.create(mode)
         load()
         selectedModeID = mode.id
         return mode
     }
 
-    func update(id: UUID, name: String, icon: String, selection: FamilyActivitySelection) {
+    func update(
+        id: UUID,
+        name: String,
+        icon: String,
+        selection: FamilyActivitySelection,
+        isStrictMode: Bool,
+        isSecurityMode: Bool
+    ) {
         guard var mode = modes.first(where: { $0.id == id }) else { return }
         mode.name = name
         mode.icon = icon
         mode.selection = selection
+        mode.isStrictMode = isStrictMode
+        mode.isSecurityMode = isSecurityMode
         mode.updatedAt = Date()
         try? repository.update(mode)
         load()

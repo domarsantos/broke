@@ -82,6 +82,39 @@ enum MiniCopy {
     static let modeIconPickerTitle = String(localized: "mode.iconPicker.title", defaultValue: "Escolha um ícone")
     static let modeSelectAppsTitle = String(localized: "mode.selectApps.title", defaultValue: "Selecionar aplicativos")
 
+    // MARK: Mode form — Strict Mode / Modo Segurança
+    static let modeProtectionSection = String(localized: "mode.protection.section", defaultValue: "Proteção")
+    static let modeStrictToggle = String(localized: "mode.strict.toggle", defaultValue: "Strict Mode")
+    static let modeStrictFooter = String(localized: "mode.strict.footer", defaultValue: "Quando ativado, este modo não poderá ser encerrado manualmente pelo Mini. Para sair, será necessário aproximar uma tag NFC autorizada.")
+    static let modeSecurityToggle = String(localized: "mode.security.toggle", defaultValue: "Modo Segurança")
+    static let modeSecurityFooter = String(localized: "mode.security.footer", defaultValue: "Oculta completamente os aplicativos selecionados enquanto este modo estiver ativo. Ideal para bancos, e-mail e outros aplicativos sensíveis.")
+    static let modeSecurityAppsOnly = String(localized: "mode.security.appsOnly", defaultValue: "O Modo Segurança protege apenas aplicativos. Categorias e sites selecionados serão ignorados.")
+    static let modeSecurityNeedsApps = String(localized: "mode.security.needsApps", defaultValue: "Selecione ao menos um aplicativo para usar o Modo Segurança.")
+    static let modeLockedEditNotice = String(localized: "mode.locked.editNotice", defaultValue: "Este modo está ativo e bloqueado. Aproxime sua Mini Tag para encerrar a sessão antes de editar.")
+
+    // MARK: Home — active session (Strict / Security)
+    static let homeStrictBadge = String(localized: "home.strict.badge", defaultValue: "🔒 Strict Mode")
+    static let homeStrictInstruction = String(localized: "home.strict.instruction", defaultValue: "Para encerrar esta sessão, aproxime sua Mini Tag.")
+    static let homeEndFocus = String(localized: "home.endFocus", defaultValue: "End Focus")
+    static let homeStrictAlertTitle = String(localized: "home.strict.alert.title", defaultValue: "Strict Mode ativo")
+    static let homeStrictAlertBody = String(localized: "home.strict.alert.body", defaultValue: "Esta sessão só pode ser encerrada usando uma Mini Tag autorizada.")
+    static let homeSecurityBanner = String(localized: "home.security.banner", defaultValue: "🛡 Modo Segurança ativo — Os aplicativos protegidos estão ocultos. Aproxime sua Mini Tag para desativar o Modo Segurança.")
+
+    // MARK: Home — denials / guards
+    static let homeLockedUnknownTag = String(localized: "home.locked.unknownTag", defaultValue: "Mini Tag não reconhecido. Aproxime a Mini Tag autorizada para encerrar.")
+    static let homeLockedOtherModeTag = String(localized: "home.locked.otherModeTag", defaultValue: "Esta Mini Tag está vinculada a outro modo e não encerra esta sessão.")
+    static let homeLockedNoTagTitle = String(localized: "home.locked.noTag.title", defaultValue: "Mini Tag necessária")
+    static let homeLockedNoTagBody = String(localized: "home.locked.noTag.body", defaultValue: "Este modo é bloqueado. Conecte ao menos uma Mini Tag a ele antes de ativá-lo, para que você sempre consiga encerrar a sessão.")
+    static let homeSecurityNoAppsTitle = String(localized: "home.security.noApps.title", defaultValue: "Nenhum aplicativo protegido")
+    static let homeSecurityNoAppsBody = String(localized: "home.security.noApps.body", defaultValue: "Escolha ao menos um aplicativo neste modo antes de ativar o Modo Segurança.")
+    static let homeNotAuthorizedTitle = String(localized: "home.notAuthorized.title", defaultValue: "Autorização necessária")
+    static let homeNotAuthorizedBody = String(localized: "home.notAuthorized.body", defaultValue: "Autorize o Tempo de Uso para que o Mini Focus possa limitar os aplicativos.")
+    static let homeActivationFailedTitle = String(localized: "home.activationFailed.title", defaultValue: "Não foi possível ativar")
+    static let homeActivationFailedBody = String(localized: "home.activationFailed.body", defaultValue: "O sistema não aplicou as restrições. Tente novamente.")
+
+    // MARK: Tags — locked session freeze
+    static let tagLockedNotice = String(localized: "tag.locked.notice", defaultValue: "Há uma sessão bloqueada ativa. Encerre-a com sua Mini Tag para gerenciar os Mini Tags.")
+
     // MARK: Mini Tag list
     static let tagsTitle = String(localized: "tags.title", defaultValue: "Mini Tags")
     static let tagsEmptyTitle = String(localized: "tags.empty.title", defaultValue: "Nenhum Mini Tag conectado")

@@ -77,11 +77,19 @@ final class AppEnvironment {
         return true
     }
 
-    /// Reapply shields if the edited Mode is the one currently active.
+    /// Reapply restrictions if the edited Mode is the one currently active.
+    /// Editing a locked active Mode is blocked at the UI level, so this only
+    /// runs for normal (unlocked) active Modes.
     func modeWasEdited(_ id: UUID) {
         guard focusController.activeMode?.id == id,
               let updated = modeStore.mode(id: id) else { return }
-        screenTime.apply(updated)
+        try? screenTime.reconcile(activeMode: updated)
+    }
+
+    /// Whether the given Mode is the currently active, locked session. Views use
+    /// this to freeze editing and tag management while locked.
+    func isModeLockedActive(_ id: UUID) -> Bool {
+        focusController.isLockedActive && focusController.activeMode?.id == id
     }
 
     static var isRunningTests: Bool {

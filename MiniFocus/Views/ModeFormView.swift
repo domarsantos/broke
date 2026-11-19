@@ -22,6 +22,8 @@ struct ModeFormView: View {
     @State private var showSymbolsPicker = false
     @State private var showAppSelection = false
     @State private var selection: FamilyActivitySelection
+    @State private var isStrictMode: Bool
+    @State private var isSecurityMode: Bool
     @State private var showDeleteConfirmation = false
     @State private var showActiveDeleteAlert = false
 
@@ -32,11 +34,40 @@ struct ModeFormView: View {
         _name = State(initialValue: mode?.name ?? "")
         _icon = State(initialValue: mode?.icon ?? "bell.slash")
         _selection = State(initialValue: mode?.selection ?? FamilyActivitySelection())
+        _isStrictMode = State(initialValue: mode?.isStrictMode ?? false)
+        _isSecurityMode = State(initialValue: mode?.isSecurityMode ?? false)
+    }
+
+    /// True when editing the Mode that is the current locked (Strict/Security)
+    /// active session. Editing is frozen to prevent bypassing the lock.
+    private var isLockedActive: Bool {
+        guard let mode else { return false }
+        return env.isModeLockedActive(mode.id)
+    }
+
+    private var securityHasForbiddenSelection: Bool {
+        isSecurityMode && (!selection.categoryTokens.isEmpty || !selection.webDomainTokens.isEmpty)
+    }
+
+    private var securityNeedsApps: Bool {
+        isSecurityMode && selection.applicationTokens.isEmpty
+    }
+
+    private var canSave: Bool {
+        !name.isEmpty && !isLockedActive && !securityNeedsApps
     }
 
     var body: some View {
         NavigationStack {
             Form {
+                if isLockedActive {
+                    Section {
+                        Label(MiniCopy.modeLockedEditNotice, systemImage: "lock.fill")
+                            .font(MiniFont.caption)
+                            .foregroundStyle(MiniColor.warm)
+                    }
+                }
+
                 Section(header: Text(MiniCopy.modeDetailsSection)) {
                     VStack(alignment: .leading, spacing: MiniSpacing.unit) {
                         Text(MiniCopy.modeNameLabel)
@@ -76,6 +107,33 @@ struct ModeFormView: View {
                     }
                 }
 
+                Section {
+                    Toggle(MiniCopy.modeStrictToggle, isOn: $isStrictMode)
+                        .disabled(isLockedActive)
+                    Text(MiniCopy.modeStrictFooter)
+                        .font(MiniFont.caption)
+                        .foregroundStyle(MiniColor.muted)
+
+                    Toggle(MiniCopy.modeSecurityToggle, isOn: $isSecurityMode)
+                        .disabled(isLockedActive)
+                    Text(MiniCopy.modeSecurityFooter)
+                        .font(MiniFont.caption)
+                        .foregroundStyle(MiniColor.muted)
+
+                    if isSecurityMode {
+                        Text(MiniCopy.modeSecurityAppsOnly)
+                            .font(MiniFont.caption)
+                            .foregroundStyle(securityHasForbiddenSelection ? MiniColor.warm : MiniColor.muted)
+                    }
+                    if securityNeedsApps {
+                        Text(MiniCopy.modeSecurityNeedsApps)
+                            .font(MiniFont.caption)
+                            .foregroundStyle(MiniColor.warm)
+                    }
+                } header: {
+                    Text(MiniCopy.modeProtectionSection)
+                }
+
                 if mode != nil {
                     Section {
                         Button(role: .destructive, action: attemptDelete) {
@@ -90,7 +148,7 @@ struct ModeFormView: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
                 leading: Button(MiniCopy.actionCancel) { dismiss() },
-                trailing: Button(MiniCopy.actionSave, action: handleSave).disabled(name.isEmpty)
+                trailing: Button(MiniCopy.actionSave, action: handleSave).disabled(!canSave)
             )
             .sheet(isPresented: $showSymbolsPicker) {
                 SymbolsPicker(selection: $icon, title: MiniCopy.modeIconPickerTitle, autoDismiss: true)
@@ -131,11 +189,35 @@ struct ModeFormView: View {
     }
 
     private func handleSave() {
+        guard canSave else { return }
+
+        // Security Mode protects apps only. Strip categories/websites so they
+        // are never silently ignored at activation time.
+        var finalSelection = selection
+        if isSecurityMode {
+            var appsOnly = FamilyActivitySelection()
+            appsOnly.applicationTokens = selection.applicationTokens
+            finalSelection = appsOnly
+        }
+
         if let mode {
-            modeStore.update(id: mode.id, name: name, icon: icon, selection: selection)
+            modeStore.update(
+                id: mode.id,
+                name: name,
+                icon: icon,
+                selection: finalSelection,
+                isStrictMode: isStrictMode,
+                isSecurityMode: isSecurityMode
+            )
             env.modeWasEdited(mode.id)
         } else {
-            modeStore.add(name: name, icon: icon, selection: selection)
+            modeStore.add(
+                name: name,
+                icon: icon,
+                selection: finalSelection,
+                isStrictMode: isStrictMode,
+                isSecurityMode: isSecurityMode
+            )
         }
         dismiss()
     }

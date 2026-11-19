@@ -11,9 +11,14 @@ import SwiftUI
 struct TagsView: View {
     @Environment(ModeStore.self) private var modeStore
     @Environment(TagStore.self) private var tagStore
+    @Environment(FocusController.self) private var focusController
 
     @State private var showAddTag = false
     @State private var selectedTag: FocusTag?
+
+    /// While a locked (Strict/Security) session runs, connecting new tags is
+    /// frozen so the lock cannot be worked around.
+    private var isLocked: Bool { focusController.isLockedActive }
 
     var body: some View {
         NavigationStack {
@@ -30,6 +35,14 @@ struct TagsView: View {
                     }
                 } else {
                     List {
+                        if isLocked {
+                            Section {
+                                Label(MiniCopy.tagLockedNotice, systemImage: "lock.fill")
+                                    .font(MiniFont.caption)
+                                    .foregroundStyle(MiniColor.warm)
+                            }
+                            .listRowBackground(MiniColor.surface)
+                        }
                         ForEach(tagStore.tags) { tag in
                             Button {
                                 selectedTag = tag
@@ -52,6 +65,7 @@ struct TagsView: View {
                     } label: {
                         Label(MiniCopy.tagsAdd, systemImage: "plus")
                     }
+                    .disabled(isLocked)
                 }
             }
             .sheet(isPresented: $showAddTag) {

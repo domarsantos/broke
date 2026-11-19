@@ -21,7 +21,7 @@ final class LocalTagRepository: TagRepositoryProtocol {
     }
 
     func fetchAll() throws -> [FocusTag] {
-        let descriptor = FetchDescriptor<BrokeSchemaV1.TagEntity>(
+        let descriptor = FetchDescriptor<BrokeSchemaV2.TagEntity>(
             sortBy: [SortDescriptor(\.createdAt, order: .forward)]
         )
         return try context.fetch(descriptor).map { $0.toDomain() }
@@ -32,7 +32,7 @@ final class LocalTagRepository: TagRepositoryProtocol {
     }
 
     func fetch(hardwareIdentifier: String) throws -> FocusTag? {
-        var descriptor = FetchDescriptor<BrokeSchemaV1.TagEntity>(
+        var descriptor = FetchDescriptor<BrokeSchemaV2.TagEntity>(
             predicate: #Predicate { $0.hardwareIdentifier == hardwareIdentifier }
         )
         descriptor.fetchLimit = 1
@@ -44,7 +44,7 @@ final class LocalTagRepository: TagRepositoryProtocol {
            try fetch(hardwareIdentifier: hardwareIdentifier) != nil {
             throw TagRepositoryError.duplicateHardwareIdentifier
         }
-        let entity = BrokeSchemaV1.TagEntity(
+        let entity = BrokeSchemaV2.TagEntity(
             id: tag.id,
             hardwareIdentifier: tag.hardwareIdentifier,
             name: tag.name,
@@ -74,7 +74,7 @@ final class LocalTagRepository: TagRepositoryProtocol {
     }
 
     func unlinkMode(_ modeID: UUID) throws {
-        let descriptor = FetchDescriptor<BrokeSchemaV1.TagEntity>(
+        let descriptor = FetchDescriptor<BrokeSchemaV2.TagEntity>(
             predicate: #Predicate { $0.linkedModeID == modeID }
         )
         let entities = try context.fetch(descriptor)
@@ -86,8 +86,8 @@ final class LocalTagRepository: TagRepositoryProtocol {
         }
     }
 
-    private func entity(id: UUID) throws -> BrokeSchemaV1.TagEntity? {
-        var descriptor = FetchDescriptor<BrokeSchemaV1.TagEntity>(
+    private func entity(id: UUID) throws -> BrokeSchemaV2.TagEntity? {
+        var descriptor = FetchDescriptor<BrokeSchemaV2.TagEntity>(
             predicate: #Predicate { $0.id == id }
         )
         descriptor.fetchLimit = 1

@@ -12,7 +12,7 @@ enum PersistenceController {
     /// Shared on-disk container stored at an explicit Application Support URL.
     /// When extensions are added later, point this at an App Group URL instead.
     static func makeSharedContainer() -> ModelContainer {
-        let schema = Schema(versionedSchema: BrokeSchemaV1.self)
+        let schema = Schema(versionedSchema: BrokeSchemaV2.self)
         let configuration = ModelConfiguration(schema: schema, url: sharedStoreURL())
         do {
             return try ModelContainer(
@@ -39,7 +39,7 @@ enum PersistenceController {
 
     /// In-memory container for unit tests and previews.
     static func makeInMemoryContainer() -> ModelContainer {
-        let schema = Schema(versionedSchema: BrokeSchemaV1.self)
+        let schema = Schema(versionedSchema: BrokeSchemaV2.self)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         do {
             return try ModelContainer(for: schema, configurations: [configuration])
@@ -50,7 +50,7 @@ enum PersistenceController {
 
     /// On-disk container at an explicit URL (used by tests to simulate relaunch).
     static func makeContainer(at url: URL) -> ModelContainer {
-        let schema = Schema(versionedSchema: BrokeSchemaV1.self)
+        let schema = Schema(versionedSchema: BrokeSchemaV2.self)
         let configuration = ModelConfiguration(schema: schema, url: url)
         do {
             return try ModelContainer(

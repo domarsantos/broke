@@ -104,15 +104,22 @@ enum BrokeSchemaV1: VersionedSchema {
     }
 }
 
-/// Migration plan placeholder. Add stages here when a V2 schema is introduced.
+/// Migration plan. V1 is frozen; V2 adds the Strict / Security flags to
+/// ModeEntity with default values, so the V1 -> V2 step is lightweight and
+/// preserves all existing data.
 enum BrokeMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [BrokeSchemaV1.self]
+        [BrokeSchemaV1.self, BrokeSchemaV2.self]
     }
 
     static var stages: [MigrationStage] {
-        []
+        [migrateV1toV2]
     }
+
+    static let migrateV1toV2 = MigrationStage.lightweight(
+        fromVersion: BrokeSchemaV1.self,
+        toVersion: BrokeSchemaV2.self
+    )
 }
 
 // MARK: - Entity <-> Domain mapping

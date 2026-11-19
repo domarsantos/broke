@@ -5,6 +5,7 @@
 
 import XCTest
 import SwiftData
+import FamilyControls
 @testable import MiniFocus
 
 @MainActor
@@ -139,5 +140,150 @@ final class FocusControllerTests: XCTestCase {
 
         XCTAssertFalse(fresh.isActive)
         XCTAssertTrue(try sessionRepo.fetchActive().isEmpty)
+    }
+
+    // MARK: - Strict Mode
+
+    private func seedLockedMode(strict: Bool, security: Bool, uid: String?) throws -> (Mode, FocusTag?) {
+        var selection = FamilyActivitySelection()
+        if security {
+            // Security requires apps; we cannot forge real tokens in a unit
+            // test, so security controller tests that need activation use the
+            // Fake which skips the empty check only when apps exist. For rule
+            // tests we keep selection empty and assert the guard instead.
+        }
+        let mode = Mode(name: "Deep", selection: selection, isStrictMode: strict, isSecurityMode: security)
+        try modeRepo.create(mode)
+        var tag: FocusTag?
+        if let uid {
+            let t = FocusTag(hardwareIdentifier: uid, name: "Key", linkedModeID: mode.id)
+            try tagRepo.register(t)
+            tag = t
+        }
+        return (mode, tag)
+    }
+
+    // Normal manual stop is allowed.
+    func testNormalManualStopAllowed() throws {
+        let mode = TestSupport.makeMode(name: "Normal")
+        try modeRepo.create(mode)
+        try controller.startManual(modeID: mode.id)
+        XCTAssertTrue(controller.isActive)
+
+        try controller.stopManual()
+        XCTAssertFalse(controller.isActive)
+        XCTAssertEqual(screenTime.clearCount, 1)
+    }
+
+    // Strict manual stop is denied and keeps the session active.
+    func testStrictManualStopDenied() throws {
+        let (mode, _) = try seedLockedMode(strict: true, security: false, uid: "KEY")
+        try controller.startManual(modeID: mode.id)
+        XCTAssertTrue(controller.isActive)
+
+        XCTAssertThrowsError(try controller.stopManual()) { error in
+            XCTAssertEqual(error as? FocusControllerError, .manualStopBlocked)
+        }
+        XCTAssertTrue(controller.isActive, "Session must remain active after a blocked manual stop")
+    }
+
+    // Strict + authorized NFC tag stops the session.
+    func testStrictAuthorizedTagStops() throws {
+        let (_, _) = try seedLockedMode(strict: true, security: false, uid: "KEY")
+        _ = try controller.startManual(modeID: modeRepo.fetchAll().first!.id)
+        XCTAssertTrue(controller.isActive)
+
+        let outcome = try controller.handleScan(ScannedTag(hardwareIdentifier: "KEY", ndefText: nil), fallbackModeID: nil)
+        XCTAssertEqual(outcome, .deactivated)
+        XCTAssertFalse(controller.isActive)
+    }
+
+    // Strict + unknown NFC tag does not stop.
+    func testStrictUnknownTagDoesNotStop() throws {
+        let (mode, _) = try seedLockedMode(strict: true, security: false, uid: "KEY")
+        try controller.startManual(modeID: mode.id)
+
+        let outcome = try controller.handleScan(ScannedTag(hardwareIdentifier: "ZZZ", ndefText: nil), fallbackModeID: nil)
+        XCTAssertEqual(outcome, .unregistered(ScannedTag(hardwareIdentifier: "ZZZ", ndefText: nil)))
+        XCTAssertTrue(controller.isActive)
+    }
+
+    // Strict + a tag linked to another mode is denied (no switch, no stop).
+    func testStrictOtherModeTagDenied() throws {
+        let (mode, _) = try seedLockedMode(strict: true, security: false, uid: "KEY")
+        let other = TestSupport.makeMode(name: "Other")
+        try modeRepo.create(other)
+        try tagRepo.register(FocusTag(hardwareIdentifier: "OTH", name: "Other", linkedModeID: other.id))
+        try controller.startManual(modeID: mode.id)
+
+        let outcome = try controller.handleScan(ScannedTag(hardwareIdentifier: "OTH", ndefText: nil), fallbackModeID: nil)
+        XCTAssertEqual(outcome, .denied(.lockedDifferentModeTag))
+        XCTAssertTrue(controller.isActive)
+        XCTAssertEqual(controller.activeMode?.id, mode.id)
+    }
+
+    // MARK: - Anti-lockout guard
+
+    func testLockedModeWithoutAuthorizedTagCannotStart() throws {
+        let (mode, _) = try seedLockedMode(strict: true, security: false, uid: nil)
+        XCTAssertThrowsError(try controller.startManual(modeID: mode.id)) { error in
+            XCTAssertEqual(error as? FocusControllerError, .lockedModeNeedsAuthorizedTag)
+        }
+        XCTAssertFalse(controller.isActive)
+        XCTAssertTrue(try sessionRepo.fetchActive().isEmpty)
+    }
+
+    // MARK: - Authorization / activation failures
+
+    func testStartFailsWhenNotAuthorized() throws {
+        screenTime.isAuthorized = false
+        let (mode, _) = try seedLockedMode(strict: true, security: false, uid: "KEY")
+        XCTAssertThrowsError(try controller.startManual(modeID: mode.id)) { error in
+            XCTAssertEqual(error as? FocusControllerError, .notAuthorized)
+        }
+        XCTAssertTrue(try sessionRepo.fetchActive().isEmpty, "No session may persist without authorization")
+    }
+
+    func testActivationFailureRollsBackSession() throws {
+        let mode = TestSupport.makeMode(name: "Normal")
+        try modeRepo.create(mode)
+        screenTime.activateError = ScreenTimeError.applyVerificationFailed
+
+        XCTAssertThrowsError(try controller.startManual(modeID: mode.id)) { error in
+            XCTAssertEqual(error as? FocusControllerError, .activationFailed)
+        }
+        XCTAssertFalse(controller.isActive)
+        XCTAssertTrue(try sessionRepo.fetchActive().isEmpty, "Session must be rolled back on activation failure")
+    }
+
+    func testDeactivationFailureKeepsSessionActive() throws {
+        let mode = TestSupport.makeMode(name: "Normal")
+        try modeRepo.create(mode)
+        try controller.startManual(modeID: mode.id)
+        screenTime.deactivateError = ScreenTimeError.clearVerificationFailed
+
+        XCTAssertThrowsError(try controller.stopManual()) { error in
+            XCTAssertEqual(error as? FocusControllerError, .deactivationFailed)
+        }
+        XCTAssertTrue(controller.isActive, "Session must stay active if restrictions could not be removed")
+        XCTAssertFalse(try sessionRepo.fetchActive().isEmpty)
+    }
+
+    // MARK: - Strategy selection
+
+    func testNormalModeUsesShieldStrategy() {
+        XCTAssertEqual(TestSupport.makeMode(name: "N").restrictionStrategy, .shield)
+    }
+
+    func testSecurityModeUsesBlockedApplicationsStrategy() {
+        let mode = Mode(name: "Bank", isSecurityMode: true)
+        XCTAssertEqual(mode.restrictionStrategy, .blockedApplications)
+        XCTAssertTrue(mode.isNFCLocked)
+    }
+
+    func testStrictOnlyModeUsesShieldButIsLocked() {
+        let mode = Mode(name: "Deep", isStrictMode: true)
+        XCTAssertEqual(mode.restrictionStrategy, .shield)
+        XCTAssertTrue(mode.isNFCLocked)
     }
 }

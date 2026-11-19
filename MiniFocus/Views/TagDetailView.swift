@@ -15,6 +15,7 @@ struct TagDetailView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(ModeStore.self) private var modeStore
     @Environment(TagStore.self) private var tagStore
+    @Environment(FocusController.self) private var focusController
 
     let tag: FocusTag
 
@@ -29,6 +30,10 @@ struct TagDetailView: View {
         _selectedModeID = State(initialValue: tag.linkedModeID)
     }
 
+    /// Relinking or deleting a tag is frozen while a locked session runs, to
+    /// avoid removing the only authorized tag mid-session (no Recovery exists).
+    private var isLocked: Bool { focusController.isLockedActive }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -38,6 +43,12 @@ struct TagDetailView: View {
 
                 Section(header: Text(MiniCopy.tagModeSection)) {
                     ModePickerField(selectedModeID: $selectedModeID)
+                        .disabled(isLocked)
+                    if isLocked {
+                        Text(MiniCopy.tagLockedNotice)
+                            .font(MiniFont.caption)
+                            .foregroundStyle(MiniColor.warm)
+                    }
                 }
 
                 Section(header: Text(MiniCopy.tagInfoSection)) {
@@ -63,6 +74,7 @@ struct TagDetailView: View {
                     } label: {
                         Text(MiniCopy.tagDelete)
                     }
+                    .disabled(isLocked)
                 }
             }
             .scrollContentBackground(.hidden)

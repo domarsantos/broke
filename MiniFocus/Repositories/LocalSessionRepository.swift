@@ -17,7 +17,7 @@ final class LocalSessionRepository: SessionRepositoryProtocol {
     }
 
     func fetchAll() throws -> [FocusSession] {
-        let descriptor = FetchDescriptor<BrokeSchemaV1.SessionEntity>(
+        let descriptor = FetchDescriptor<BrokeSchemaV2.SessionEntity>(
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
         return try context.fetch(descriptor).map { $0.toDomain() }
@@ -29,7 +29,7 @@ final class LocalSessionRepository: SessionRepositoryProtocol {
 
     func fetchActive() throws -> [FocusSession] {
         let activeRaw = FocusSessionStatus.active.rawValue
-        let descriptor = FetchDescriptor<BrokeSchemaV1.SessionEntity>(
+        let descriptor = FetchDescriptor<BrokeSchemaV2.SessionEntity>(
             predicate: #Predicate { $0.statusRaw == activeRaw },
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
@@ -37,7 +37,7 @@ final class LocalSessionRepository: SessionRepositoryProtocol {
     }
 
     func create(_ session: FocusSession) throws {
-        let entity = BrokeSchemaV1.SessionEntity(
+        let entity = BrokeSchemaV2.SessionEntity(
             id: session.id,
             modeID: session.modeID,
             startedAt: session.startedAt,
@@ -62,8 +62,8 @@ final class LocalSessionRepository: SessionRepositoryProtocol {
         try context.save()
     }
 
-    private func entity(id: UUID) throws -> BrokeSchemaV1.SessionEntity? {
-        var descriptor = FetchDescriptor<BrokeSchemaV1.SessionEntity>(
+    private func entity(id: UUID) throws -> BrokeSchemaV2.SessionEntity? {
+        var descriptor = FetchDescriptor<BrokeSchemaV2.SessionEntity>(
             predicate: #Predicate { $0.id == id }
         )
         descriptor.fetchLimit = 1
